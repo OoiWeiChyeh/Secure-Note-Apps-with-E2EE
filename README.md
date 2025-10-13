@@ -28,7 +28,7 @@ This project demonstrates a balance between **cryptographic strength** and **use
 
 ## 📋 Deliverables
 
-* Android prototype app (.apk) // Web-based Prototype(Optional)
+* Web-based Prototype(Optional)
 * System documentation (architecture, data flow diagrams, use cases)
 * Usability, performance, and security testing results
 * Final project report and presentation
