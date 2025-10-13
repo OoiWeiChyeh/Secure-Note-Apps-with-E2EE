@@ -18,10 +18,12 @@ This project demonstrates a balance between **cryptographic strength** and **use
 
 ## 📦 Tech Stack
 
-* **Frontend / App Development**: Java, XML (Android Studio)
-* **Database**: SQLite + SQLCipher (encrypted local storage)
+* **Frontend / App Development**: HTML5, CSS3, JavaScript (React or Vanilla JS)
+* **Backend**: Node.js with Express.js
+* **Database**: MongoDB with client-side encryption (encrypted local storage)
 * **Authentication**: Android Biometric API, Firebase Auth (optional)
 * **Secure Key Management**: Android Keystore
+* **Authentication**: JWT + Optional 2FA
 * **Sharing Mechanisms**: QR Code generator/scanner, NFC data exchange
 
 ## 📋 Deliverables
