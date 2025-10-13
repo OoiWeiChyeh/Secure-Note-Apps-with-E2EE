@@ -26,7 +26,7 @@ This project demonstrates a balance between **cryptographic strength** and **use
 
 ## 📋 Deliverables
 
-* Android prototype app (.apk)
+* Android prototype app (.apk) // Web-based Prototype(Optional)
 * System documentation (architecture, data flow diagrams, use cases)
 * Usability, performance, and security testing results
 * Final project report and presentation
@@ -44,7 +44,7 @@ This project is developed by the **MAL2020 Computing Group Project team**:
 
 * Shidan
 * Farah
-* Daniel
+* Danial
 * Wayden
 
 ## 📄 License
