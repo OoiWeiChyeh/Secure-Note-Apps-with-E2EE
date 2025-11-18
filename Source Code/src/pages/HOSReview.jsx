@@ -16,14 +16,10 @@ import {
   CheckCircle, 
   XCircle, 
   FileText, 
-  Clock, 
-  User, 
-  Calendar,
+  Clock,
   MessageSquare,
   AlertCircle,
-  Loader2,
-  Download,
-  Eye
+  Loader2
 } from 'lucide-react';
 import { formatFileSize, formatDate } from '../utils/helpers';
 
@@ -125,10 +121,6 @@ export default function HOSReview() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleViewFile = (file) => {
-    navigate(`/file?id=${file.id}&key=${encodeURIComponent(file.encryptionKey)}`);
   };
 
   const handleReview = async (file, action) => {

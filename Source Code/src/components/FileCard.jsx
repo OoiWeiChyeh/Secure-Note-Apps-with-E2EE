@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { deleteFile } from '../services/storageService';
-import { deleteFileMetadata, revokeFileAccessByUser, getDownloadHistory, daysUntilExpiration, isFileExpired, submitFileForReview } from '../services/firestoreService';
+import { deleteFileMetadata, getDownloadHistory, daysUntilExpiration, isFileExpired, submitFileForReview } from '../services/firestoreService';
 import { getCurrentUser } from '../services/authService';
 import { formatFileSize, formatDate, getFileIcon } from '../utils/helpers';
-import { Download, Share2, Trash2, MoreVertical, FileText, Image, Archive, Video, Music, File, History, X, Clock, Send, CheckCircle, AlertCircle, Clock as ClockIcon, FileCheck, GitBranch, UploadCloud, List } from 'lucide-react';
+import { Download, Trash2, MoreVertical, FileText, Image, Archive, Video, Music, File, History, X, Clock, Send, CheckCircle, AlertCircle, Clock as ClockIcon, FileCheck, GitBranch, UploadCloud, List } from 'lucide-react';
 import VersionHistoryModal from './VersionHistoryModal';
 import UploadNewVersionModal from './UploadNewVersionModal';
 import FileTimelineModal from './FileTimelineModal';
@@ -64,11 +64,7 @@ export default function FileCard({ file, isOwner, onDeleted, onSelect, isSelecte
   
   // HOS and Exam Unit can view files but not edit/delete
   const canViewDetails = isOwner || userRole === 'hos' || userRole === 'exam_unit';
-  const canEdit = isOwner; // Only owner can upload new version, share, delete
-
-  const handleShare = () => {
-    navigate(`/share?fileId=${file.id}`);
-  };
+  const canEdit = isOwner; // Only owner can upload new version, delete
 
   const handleView = () => {
     navigate(`/file?id=${file.id}&key=${encodeURIComponent(file.encryptionKey)}`);
@@ -113,19 +109,6 @@ export default function FileCard({ file, isOwner, onDeleted, onSelect, isSelecte
       alert('Failed to load download history');
     } finally {
       setHistoryLoading(false);
-    }
-  };
-
-  const handleRevokeAccess = async (email) => {
-    if (!confirm(`Revoke access for ${email}?`)) return;
-    
-    try {
-      await revokeFileAccessByUser(file.id, email);
-      // Trigger refresh
-      if (onDeleted) onDeleted();
-    } catch (err) {
-      console.error('Error revoking access:', err);
-      alert('Failed to revoke access');
     }
   };
 
@@ -259,16 +242,6 @@ export default function FileCard({ file, isOwner, onDeleted, onSelect, isSelecte
                       </button>
                     <button
                       onClick={() => {
-                        handleShare();
-                        setMenuOpen(false);
-                      }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700"
-                    >
-                      <Share2 className="w-4 h-4" />
-                      Share
-                    </button>
-                    <button
-                      onClick={() => {
                         handleDelete();
                         setMenuOpen(false);
                       }}
@@ -343,36 +316,7 @@ export default function FileCard({ file, isOwner, onDeleted, onSelect, isSelecte
             <span>📥 Downloads:</span>
             <span className="font-medium text-gray-700">{file.downloads || 0}</span>
           </div>
-
-          {/* Shared With Count */}
-          {isOwner && file.sharedWith && file.sharedWith.length > 0 && (
-            <div className="flex items-center justify-between text-gray-500">
-              <span>👥 Shared:</span>
-              <span className="font-medium text-gray-700">{file.sharedWith.length} people</span>
-            </div>
-          )}
         </div>
-
-        {/* Shared With Preview & Revoke */}
-        {isOwner && file.sharedWith && file.sharedWith.length > 0 && (
-          <div className="mb-3 p-2 bg-gray-50 rounded text-xs">
-            <p className="text-gray-600 font-medium mb-2">Shared with:</p>
-            <div className="flex flex-wrap gap-1">
-              {file.sharedWith.map((email, idx) => (
-                <div key={idx} className="flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs group">
-                  <span className="truncate">{email.split('@')[0]}</span>
-                  <button
-                    onClick={() => handleRevokeAccess(email)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                    title="Revoke access"
-                  >
-                    <X className="w-3 h-3 cursor-pointer hover:text-red-600" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
       {/* Encryption Badge */}
         <div className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded mb-3">
@@ -381,24 +325,13 @@ export default function FileCard({ file, isOwner, onDeleted, onSelect, isSelecte
       </div>
 
       {/* Actions */}
-        <div className="flex gap-2">
         <button
           onClick={handleView}
-            className="flex-1 px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-1"
+            className="w-full px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-1"
         >
             <Download className="w-3 h-3" />
           Download
         </button>
-        {isOwner && (
-          <button
-            onClick={handleShare}
-              className="px-3 py-2 border border-gray-300 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 transition-colors"
-              title="Share this file"
-          >
-            <Share2 className="w-4 h-4" />
-            </button>
-          )}
-        </div>
 
         {/* Submit for Review Button (Only for owner and DRAFT or NEEDS_REVISION status) */}
         {isOwner && (workflowStatus === 'DRAFT' || workflowStatus === 'NEEDS_REVISION') && (

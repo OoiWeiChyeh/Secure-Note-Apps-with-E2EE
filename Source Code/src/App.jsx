@@ -9,7 +9,6 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Upload from './pages/Upload';
-import Share from './pages/Share';
 import ViewFile from './pages/ViewFile';
 import AccessFile from './pages/AccessFile';
 import Settings from './pages/Settings';
@@ -161,14 +160,6 @@ function App() {
           element={
             <ProtectedRoute>
               <Upload />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/share"
-          element={
-            <ProtectedRoute>
-              <Share />
             </ProtectedRoute>
           }
         />

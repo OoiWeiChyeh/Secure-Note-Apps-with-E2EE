@@ -27,7 +27,6 @@ export const saveFileMetadata = async (userId, fileData) => {
       ownerId: userId,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      sharedWith: [],
       downloads: 0,
       status: 'ready',
       expiresAt: fileData.expiresAt || null,
@@ -87,32 +86,6 @@ export const getUserFiles = async (userId) => {
 };
 
 /**
- * Get files shared with user
- */
-export const getSharedFiles = async (userEmail) => {
-  try {
-    const filesRef = collection(db, 'files');
-    const q = query(
-      filesRef,
-      where('sharedWith', 'array-contains', userEmail),
-      orderBy('createdAt', 'desc')
-    );
-    
-    const querySnapshot = await getDocs(q);
-    const files = [];
-    
-    querySnapshot.forEach((doc) => {
-      files.push({ id: doc.id, ...doc.data() });
-    });
-    
-    return files;
-  } catch (error) {
-    console.error('Error getting shared files:', error);
-    throw new Error('Failed to get shared files');
-  }
-};
-
-/**
  * Get all files (for Exam Unit - admin view)
  */
 export const getAllFiles = async () => {
@@ -147,42 +120,6 @@ export const updateFileMetadata = async (fileId, updates) => {
   } catch (error) {
     console.error('Error updating file metadata:', error);
     throw new Error('Failed to update file metadata');
-  }
-};
-
-/**
- * Share file with user(s)
- */
-export const shareFile = async (fileId, userEmails) => {
-  try {
-    const docRef = doc(db, 'files', fileId);
-    
-    // Add emails to sharedWith array
-    for (const email of userEmails) {
-      await updateDoc(docRef, {
-        sharedWith: arrayUnion(email),
-        updatedAt: serverTimestamp()
-      });
-    }
-  } catch (error) {
-    console.error('Error sharing file:', error);
-    throw new Error('Failed to share file');
-  }
-};
-
-/**
- * Revoke file access from a user
- */
-export const revokeFileAccess = async (fileId, userEmail) => {
-  try {
-    const docRef = doc(db, 'files', fileId);
-    await updateDoc(docRef, {
-      sharedWith: arrayRemove(userEmail),
-      updatedAt: serverTimestamp()
-    });
-  } catch (error) {
-    console.error('Error revoking file access:', error);
-    throw new Error('Failed to revoke file access');
   }
 };
 
@@ -246,21 +183,6 @@ export const getDownloadHistory = async (fileId) => {
 };
 
 /**
- * Bulk share files with multiple users
- */
-export const bulkShareFiles = async (fileIds, userEmails) => {
-  try {
-    // Share each file with each email
-    for (const fileId of fileIds) {
-      await shareFile(fileId, userEmails);
-    }
-  } catch (error) {
-    console.error('Error bulk sharing files:', error);
-    throw new Error('Failed to bulk share files');
-  }
-};
-
-/**
  * Set file expiration date
  */
 export const setFileExpiration = async (fileId, expirationDate) => {
@@ -297,22 +219,6 @@ export const daysUntilExpiration = (file) => {
   const daysLeft = Math.ceil((expirationTime - now) / (1000 * 60 * 60 * 24));
   
   return daysLeft > 0 ? daysLeft : 0;
-};
-
-/**
- * Revoke file access
- */
-export const revokeFileAccessByUser = async (fileId, userEmail) => {
-  try {
-    const docRef = doc(db, 'files', fileId);
-    await updateDoc(docRef, {
-      sharedWith: arrayRemove(userEmail),
-      updatedAt: serverTimestamp()
-    });
-  } catch (error) {
-    console.error('Error revoking file access:', error);
-    throw new Error('Failed to revoke file access');
-  }
 };
 
 /**
