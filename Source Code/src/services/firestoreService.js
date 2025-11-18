@@ -191,18 +191,23 @@ export const revokeFileAccess = async (fileId, userEmail) => {
  */
 export const recordDownload = async (fileId, userEmail) => {
   try {
+    console.log('recordDownload called:', { fileId, userEmail });
     const docRef = doc(db, 'files', fileId);
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
       const currentHistory = docSnap.data().downloadHistory || [];
+      console.log('Current download history:', currentHistory);
       
-      // Add to history
-      const newHistory = [...currentHistory, {
+      // Add to history (use ISO string instead of serverTimestamp in array)
+      const newEntry = {
         email: userEmail,
-        timestamp: new Date().toISOString(),
-        downloadedAt: serverTimestamp()
-      }];
+        timestamp: new Date().toISOString()
+      };
+      
+      const newHistory = [...currentHistory, newEntry];
+      
+      console.log('New download history entry:', newEntry);
       
       // Keep only last 100 downloads
       const trimmedHistory = newHistory.slice(-100);
@@ -211,6 +216,10 @@ export const recordDownload = async (fileId, userEmail) => {
         downloadHistory: trimmedHistory,
         lastDownloaded: serverTimestamp()
       });
+      
+      console.log('Download recorded successfully. Total entries:', trimmedHistory.length);
+    } else {
+      console.error('File document not found:', fileId);
     }
   } catch (error) {
     console.error('Error recording download:', error);
@@ -324,18 +333,25 @@ export const deleteFileMetadata = async (fileId) => {
  */
 export const incrementDownloads = async (fileId, userEmail = 'anonymous') => {
   try {
+    console.log('incrementDownloads called:', { fileId, userEmail });
     const docRef = doc(db, 'files', fileId);
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
       const currentDownloads = docSnap.data().downloads || 0;
+      console.log('Current downloads:', currentDownloads);
+      
       await updateDoc(docRef, {
         downloads: currentDownloads + 1,
         lastDownloaded: serverTimestamp()
       });
       
+      console.log('Download count incremented to:', currentDownloads + 1);
+      
       // Also record in history
       await recordDownload(fileId, userEmail);
+    } else {
+      console.error('File not found for incrementing downloads:', fileId);
     }
   } catch (error) {
     console.error('Error incrementing downloads:', error);
@@ -683,6 +699,7 @@ export const assignLecturerToSubject = async (deptId, courseId, subjectId, lectu
     await updateDoc(userRef, {
       assignedSubjects: arrayUnion({
         deptId,
+        deptName: deptSnap.data().name,
         courseId,
         subjectId,
         subjectCode: courses[courseIndex].subjects[subjectIndex].subjectCode,

@@ -191,19 +191,6 @@ export default function ViewFile() {
             </div>
           </div>
 
-          {/* Debug Info (only in development) */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mb-6 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-              <p className="text-xs text-gray-600 mb-1">🔧 Debug Info:</p>
-              <div className="text-xs text-gray-500 space-y-1">
-                <p>File ID: {fileId}</p>
-                <p>URL Key Length: {encryptionKey?.length || 'None'}</p>
-                <p>Firestore Key Length: {file?.encryptionKey?.length || 'None'}</p>
-                <p>Using Key: {file?.encryptionKey ? 'Firestore' : 'URL'}</p>
-              </div>
-            </div>
-          )}
-
           {/* Messages */}
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
@@ -219,15 +206,12 @@ export default function ViewFile() {
             </div>
           )}
 
-          {/* Download Info */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <h3 className="font-semibold text-blue-900 mb-2">How it works:</h3>
-            <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-              <li>Encrypted file is downloaded from secure storage</li>
-              <li>File is decrypted locally in your browser</li>
-              <li>Decrypted file is saved to your device</li>
-              <li>No plaintext data is ever sent over the network</li>
-            </ol>
+          {/* Security Info */}
+          <div className="flex items-center gap-2 mb-6 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <Lock className="w-5 h-5 text-green-600 flex-shrink-0" />
+            <p className="text-sm text-green-800">
+              <span className="font-medium">Secure download:</span> File is encrypted in storage and decrypted locally in your browser
+            </p>
           </div>
 
           {/* Download Button */}

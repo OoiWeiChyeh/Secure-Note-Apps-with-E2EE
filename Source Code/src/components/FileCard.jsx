@@ -103,7 +103,9 @@ export default function FileCard({ file, isOwner, onDeleted, onSelect, isSelecte
   const handleShowHistory = async () => {
     setHistoryLoading(true);
     try {
+      console.log('Loading download history for file:', file.id);
       const history = await getDownloadHistory(file.id);
+      console.log('Download history loaded:', history);
       setDownloadHistory(history || []);
       setShowHistory(true);
     } catch (err) {
@@ -429,34 +431,36 @@ export default function FileCard({ file, isOwner, onDeleted, onSelect, isSelecte
               {historyLoading ? (
                 <p className="text-center text-gray-600">Loading...</p>
               ) : downloadHistory.length === 0 ? (
-                <p className="text-center text-gray-600">No downloads yet</p>
+                <div className="text-center py-8">
+                  <History className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-600 font-medium">No downloads yet</p>
+                  <p className="text-sm text-gray-500 mt-1">Download history will appear here</p>
+                </div>
               ) : (
-                <div className="space-y-2">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-2 text-left text-gray-600">Email</th>
-                          <th className="px-4 py-2 text-left text-gray-600">Downloaded</th>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-gray-600">Email</th>
+                        <th className="px-4 py-2 text-left text-gray-600">Downloaded</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {downloadHistory.map((entry, idx) => (
+                        <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
+                          <td className="px-4 py-2 text-gray-900">{entry.email || 'Anonymous'}</td>
+                          <td className="px-4 py-2 text-gray-600">
+                            {entry.timestamp ? new Date(entry.timestamp).toLocaleString() : 'N/A'}
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {downloadHistory.map((entry, idx) => (
-                          <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
-                            <td className="px-4 py-2 text-gray-900">{entry.email || 'Anonymous'}</td>
-                            <td className="px-4 py-2 text-gray-600">
-                              {entry.timestamp ? new Date(entry.timestamp).toLocaleString() : 'N/A'}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
-      </div>
-    </div>
+          </div>
+        </div>
       )}
 
       {/* Version History Modal */}

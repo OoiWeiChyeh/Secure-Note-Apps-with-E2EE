@@ -245,7 +245,9 @@ export default function Dashboard() {
       const matchesSearch = !searchQuery || 
         file.fileName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         file.subjectName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        file.subjectCode?.toLowerCase().includes(searchQuery.toLowerCase());
+        file.subjectCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        file.departmentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        file.createdByName?.toLowerCase().includes(searchQuery.toLowerCase());
       
       const matchesCategory = selectedCategory === 'all' || file.category === selectedCategory;
       const matchesStatus = selectedStatus === 'all' || file.workflowStatus === selectedStatus;
@@ -256,6 +258,39 @@ export default function Dashboard() {
 
   const filteredMyFiles = filterFiles(myFiles);
   const filteredReviewFiles = filterFiles(reviewFiles);
+
+  // Group files by department for Exam Unit
+  const groupFilesByDepartment = (files) => {
+    const grouped = {};
+    files.forEach(file => {
+      const deptName = file.departmentName || 'Unknown Department';
+      if (!grouped[deptName]) {
+        grouped[deptName] = [];
+      }
+      grouped[deptName].push(file);
+    });
+    return grouped;
+  };
+
+  // Group files by status for better organization
+  const groupFilesByStatus = (files) => {
+    const grouped = {
+      'PENDING_EXAM_UNIT': [],
+      'PENDING_HOS_REVIEW': [],
+      'APPROVED': [],
+      'DRAFT': [],
+      'NEEDS_REVISION': []
+    };
+    files.forEach(file => {
+      const status = file.workflowStatus || 'DRAFT';
+      if (grouped[status]) {
+        grouped[status].push(file);
+      } else {
+        grouped['DRAFT'].push(file);
+      }
+    });
+    return grouped;
+  };
 
   if (loading) {
     return (
@@ -351,15 +386,6 @@ export default function Dashboard() {
           {/* Exam Unit Specific Cards */}
           {userRole === 'exam_unit' && (
             <>
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs text-gray-600">Total Files</p>
-                  <FolderOpen className="w-5 h-5 text-gray-600" />
-                </div>
-                <p className="text-2xl font-bold text-gray-900 mb-1">{stats.total}</p>
-                <p className="text-xs text-gray-500">In system</p>
-              </div>
-
               <div 
                 onClick={() => navigate('/admin')}
                 className="bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl shadow-sm p-6 cursor-pointer hover:from-purple-700 hover:to-purple-800 transition-all transform hover:scale-105"
@@ -457,7 +483,7 @@ export default function Dashboard() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search files, subjects, codes..."
+              placeholder="Search by file, subject, department, or lecturer..."
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -680,7 +706,37 @@ export default function Dashboard() {
                     <p className="text-gray-600 mb-2">No files awaiting review</p>
                     <p className="text-sm text-gray-500">Files pending your approval will appear here</p>
                   </div>
+                ) : userRole === 'exam_unit' ? (
+                  // Exam Unit: Group by department
+                  <div className="space-y-8">
+                    {Object.entries(groupFilesByDepartment(filteredReviewFiles)).map(([deptName, deptFiles]) => (
+                      <div key={deptName}>
+                        {/* Department Header */}
+                        <div className="flex items-center gap-2 mb-4 pb-2 border-b border-blue-200 bg-blue-50 -mx-6 -mt-6 px-6 py-3 rounded-t-lg">
+                          <Building2 className="w-5 h-5 text-blue-600" />
+                          <h3 className="text-lg font-semibold text-gray-900">{deptName}</h3>
+                          <span className="px-2 py-1 bg-blue-600 text-white rounded-full text-xs font-bold">
+                            {deptFiles.length} pending
+                          </span>
+                        </div>
+
+                        {/* Files Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
+                          {deptFiles.map(file => (
+                            <FileCard 
+                              key={file.id} 
+                              file={file} 
+                              isOwner={currentUser && file.createdBy === currentUser.uid}
+                              userRole={userRole}
+                              onDeleted={handleFileDeleted} 
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 ) : (
+                  // HOS: Standard grid
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredReviewFiles.map(file => (
                       <FileCard 
@@ -705,17 +761,33 @@ export default function Dashboard() {
                     <p className="text-sm text-gray-500">All files will appear here</p>
                 </div>
               ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredMyFiles.map(file => (
+                  <div className="space-y-8">
+                    {Object.entries(groupFilesByDepartment(filteredMyFiles)).map(([deptName, deptFiles]) => (
+                      <div key={deptName}>
+                        {/* Department Header */}
+                        <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
+                          <Building2 className="w-5 h-5 text-blue-600" />
+                          <h3 className="text-lg font-semibold text-gray-900">{deptName}</h3>
+                          <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                            {deptFiles.length} file{deptFiles.length !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+
+                        {/* Files Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {deptFiles.map(file => (
                     <FileCard
                       key={file.id}
                       file={file}
                       isOwner={false}
-                        userRole={userRole}
+                              userRole={userRole}
                       onDeleted={handleFileDeleted}
                     />
                   ))}
                 </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </>
             )}

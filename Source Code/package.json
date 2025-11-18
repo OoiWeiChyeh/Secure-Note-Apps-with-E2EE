@@ -8,8 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "emulator": "firebase emulators:start",
-    "seed": "node emulator-seed-data.js"
+    "emulator": "firebase emulators:start --import=./emulator-data --export-on-exit=./emulator-data",
+    "emulator:fresh": "firebase emulators:start",
+    "seed": "node seed-simple.js"
   },
   "dependencies": {
     "file-saver": "^2.0.5",

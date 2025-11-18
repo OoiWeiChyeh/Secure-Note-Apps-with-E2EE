@@ -1,393 +1,182 @@
 # 🎓 University Exam Paper Management System
 
-A secure, role-based exam paper management system with version control and approval workflow.
+Secure exam paper management with role-based workflow and version control.
 
 ---
 
-## 🚀 Quick Start (For Developers)
+## 🚀 Quick Start
 
-### **1. Clone & Install**
 ```bash
+# 1. Clone & Install
 git clone <repository-url>
 cd "file web"
 npm install
-```
 
-### **2. Start Development**
-```bash
-# Terminal 1: Start emulator
+# 2. Start Emulator (Terminal 1)
 npm run emulator
 
-# Terminal 2: Create test users (first time only)
+# 3. Create Test Users (first time only, Terminal 2)
 node seed-simple.js
 
-# Terminal 2: Start app
+# 4. Start App (Terminal 2)
 npm run dev
 ```
 
-### **3. Access**
-- **App**: http://localhost:3000
-- **Emulator UI**: http://localhost:4000
-- **Login**: `lecturer1@test.com` / `test123456`
+**Access:**
+- App: http://localhost:3000
+- Database: http://localhost:4000
+- Login: `lecturer1@test.com` / `test123456`
 
-**✅ That's it! No Firebase Cloud setup needed for development!**
-
----
-
-## 📚 Documentation
-
-| File | Purpose | Who Needs It |
-|------|---------|--------------|
-| **TEAM_SETUP.md** | Complete setup guide | New team members |
-| **EMULATOR_GUIDE.md** | How to use emulator | All developers |
-| **TEST_ACCOUNTS.md** | All test account credentials | Everyone |
-| **TROUBLESHOOTING.md** | Fix common issues | When stuck |
-| **SECURITY.md** | Security architecture | Technical reference |
-
-**Start here:** [TEAM_SETUP.md](./TEAM_SETUP.md)
+**👉 New to the team?** Read [TEAM_SETUP.md](./TEAM_SETUP.md)
 
 ---
 
-## 🎯 Features
+## 📚 Documentation Files
 
-### **Role-Based Access Control**
-- **Exam Unit Admin**: Approve users, manage departments, final approval
-- **HOS (Head of School)**: Review & approve department exam papers
-- **Lecturers**: Upload exam papers, submit for review
-
-### **Workflow**
-```
-Lecturer uploads → HOS reviews → Exam Unit approves → Ready for printing
-```
-
-### **Version Control**
-- Track all file versions
-- View file timeline
-- Download any version
-- See who changed what
-
-### **Security**
-- AES-256-GCM encryption
-- Role-based permissions
-- Department isolation
-- Audit trails
+| File | What's Inside |
+|------|---------------|
+| **TEAM_SETUP.md** | Full setup guide for new developers |
+| **QUICK_REFERENCE.md** | Daily commands cheat sheet |
+| **SECURITY.md** | Encryption & security details |
 
 ---
 
-## 🏗️ Architecture
+## 🎯 What This System Does
 
-### **Local Development (What You Use)**
-```
-Your Computer:
-├── React Frontend (localhost:3000)
-├── Firebase Emulator (localhost:4000)
-│   ├── Auth Emulator (localhost:9099)
-│   ├── Firestore Emulator (localhost:8080)
-│   └── Storage Emulator (localhost:9199)
-└── Temporary test data
+### **Three Roles:**
+- **Exam Unit**: Manage users, final approval, system admin
+- **HOS**: Review & approve exam papers for their department
+- **Lecturers**: Create and upload exam papers
 
-✅ No internet connection to Firebase Cloud
-✅ Each developer has own isolated environment
-✅ Fast testing (no deploy needed)
+### **Workflow:**
+```
+Lecturer uploads exam paper
+         ↓
+HOS reviews & approves
+         ↓
+Exam Unit final approval
+         ↓
+Ready for printing
 ```
 
-### **Production (When Deployed)**
-```
-Internet:
-├── React Frontend (https://file-share-f8260.web.app)
-├── Firebase Cloud
-│   ├── Firebase Authentication
-│   ├── Cloud Firestore
-│   └── Cloud Storage
-└── Real user data
-
-⚠️ Only team lead deploys to production
-⚠️ Requires Firebase project access
-```
+### **Features:**
+- ✅ Version control (track all file versions)
+- ✅ File timeline (see who changed what)
+- ✅ AES-256 encryption
+- ✅ Department isolation
+- ✅ Approval workflow
+- ✅ Download history
 
 ---
 
-## 🗂️ Database Structure
+## 🏗️ Tech Stack
 
-### **Collections:**
-
-#### **users/**
-```javascript
-{
-  email: "lecturer1@test.com",
-  displayName: "Dr. Ali Rahman",
-  role: "lecturer",  // pending | lecturer | hos | exam_unit
-  department: "cs-dept",
-  subjects: ["cs101", "cs201"],
-  status: "approved"
-}
-```
-
-#### **departments/**
-```javascript
-{
-  name: "Computer Science",
-  code: "CS",
-  description: "Department of Computer Science"
-}
-```
-
-#### **files/**
-```javascript
-{
-  fileName: "CS101_Final_Exam.pdf",
-  fileSize: 2048000,
-  createdBy: "user_id",
-  createdByName: "Dr. Ali Rahman",
-  departmentId: "cs-dept",
-  subjectCode: "CS101",
-  workflowStatus: "PENDING_HOS_REVIEW",
-  version: 2,
-  encryptionKey: "...",
-  downloadURL: "gs://...",
-  downloads: 5,
-  downloadHistory: [...]
-}
-```
-
-#### **fileVersions/**
-```javascript
-{
-  fileId: "file001",
-  version: 2,
-  description: "Fixed formatting issues",
-  uploadedBy: "user_id",
-  uploadedAt: Timestamp
-}
-```
-
-#### **feedback/**
-```javascript
-{
-  fileId: "file001",
-  reviewerRole: "hos",
-  action: "APPROVED",
-  comments: "Looks good",
-  createdAt: Timestamp
-}
-```
+- **Frontend**: React + Vite + TailwindCSS
+- **Backend**: Firebase (Auth, Firestore, Storage)
+- **Encryption**: AES-256-GCM (Web Crypto API)
+- **Development**: Firebase Emulator Suite
 
 ---
 
-## 🔄 Workflow States
+## 🔧 Tech Details
 
-| Status | Description | Next Action |
-|--------|-------------|-------------|
-| `DRAFT` | Lecturer created, not submitted | Submit for review |
-| `PENDING_HOS_REVIEW` | Waiting for HOS review | HOS approve/reject |
-| `NEEDS_REVISION` | HOS requested changes | Lecturer uploads new version |
-| `PENDING_EXAM_UNIT` | HOS approved, awaiting final | Exam Unit approve/reject |
-| `APPROVED` | Final approval | Ready for printing |
-
----
-
-## 👥 User Roles & Permissions
-
-| Action | Lecturer | HOS | Exam Unit |
-|--------|----------|-----|-----------|
-| Upload files | ✅ | ❌ | ❌ |
-| Submit for review | ✅ | ❌ | ❌ |
-| View own files | ✅ | - | - |
-| View department files | ❌ | ✅ | ✅ |
-| Review files | ❌ | ✅ | ✅ |
-| Approve/Reject | ❌ | ✅ | ✅ |
-| Final approval | ❌ | ❌ | ✅ |
-| Manage users | ❌ | ❌ | ✅ |
-| Manage departments | ❌ | ❌ | ✅ |
-| Version history | ✅ | ✅ | ✅ |
-| File timeline | ✅ | ✅ | ✅ |
-
----
-
-## 🛠️ Tech Stack
-
-**Frontend:**
-- React 18
-- React Router
-- TailwindCSS
-- Lucide Icons
-
-**Backend:**
-- Firebase Authentication
-- Cloud Firestore
-- Firebase Storage
-- Firebase Hosting
-
-**Security:**
-- AES-256-GCM Encryption
-- Role-based access control
-- Firestore Security Rules
-
-**Development:**
-- Vite (Build tool)
-- Firebase Emulator Suite
-- ESLint
-
----
-
-## 📦 Project Structure
-
+### **Project Structure:**
 ```
-file web/
+file-web/
 ├── src/
-│   ├── components/          # Reusable UI components
-│   │   ├── FileCard.jsx
-│   │   ├── Navbar.jsx
-│   │   └── ...
-│   ├── pages/              # Page components
-│   │   ├── Dashboard.jsx
-│   │   ├── Upload.jsx
-│   │   ├── HOSReview.jsx
-│   │   ├── ExamUnitReview.jsx
-│   │   ├── AdminPanel.jsx
-│   │   └── ...
-│   ├── services/           # Business logic
-│   │   ├── authService.js
-│   │   ├── firestoreService.js
-│   │   ├── storageService.js
-│   │   └── encryptionService.js
-│   └── utils/              # Helper functions
-│
-├── firebase.json           # Firebase & Emulator config
-├── firestore.rules         # Database security rules
-├── firestore.indexes.json  # Database indexes
-├── seed-simple.js          # Create test data
-├── package.json            # Dependencies
-│
-└── Documentation/
-    ├── TEAM_SETUP.md       # Setup guide for team
-    ├── EMULATOR_GUIDE.md   # Emulator usage
-    ├── TEST_ACCOUNTS.md    # Test credentials
-    ├── TROUBLESHOOTING.md  # Common issues
-    └── SECURITY.md         # Security details
+│   ├── components/     # React components
+│   ├── pages/         # Page views
+│   ├── services/      # Firebase/API services
+│   └── utils/         # Helper functions
+├── firebase.json      # Firebase config
+├── firestore.rules    # Database security
+├── seed-simple.js     # Create test users
+└── package.json       # Dependencies
 ```
 
----
+### **Database (Firestore):**
+- `users/` - User profiles & roles
+- `files/` - File metadata
+- `fileVersions/` - Version history
+- `departments/` - Departments & courses
+- `subjects/` - Subject assignments
 
-## 🧪 Test Accounts
-
-All passwords: `test123456`
-
-| Email | Role | Department |
-|-------|------|------------|
-| `examunit@test.com` | Exam Unit | - |
-| `hos.cs@test.com` | HOS | Computer Science |
-| `hos.me@test.com` | HOS | Mechanical Engineering |
-| `hos.ee@test.com` | HOS | Electrical Engineering |
-| `lecturer1@test.com` | Lecturer | Computer Science |
-| `lecturer2@test.com` | Lecturer | Mechanical Engineering |
-| `lecturer3@test.com` | Lecturer | Electrical Engineering |
-
-See [TEST_ACCOUNTS.md](./TEST_ACCOUNTS.md) for full details.
+### **Local Development:**
+- Runs entirely on localhost
+- No cloud connection needed
+- Data persists between sessions
+- Saved in `emulator-data/` folder
 
 ---
 
-## 🚀 Deployment (Production)
-
-**Only team lead should deploy:**
+## 📝 Common Commands
 
 ```bash
-# Build production version
+# Daily work
+npm run emulator          # Start emulator
+npm run dev              # Start app
+
+# Fresh start (reset data)
+npm run emulator:fresh
+node seed-simple.js
+
+# Build for production
 npm run build
-
-# Deploy to Firebase Hosting
-firebase deploy --only hosting
-
-# Deploy everything (hosting + rules + indexes)
 firebase deploy
 ```
 
-**Live URL:** https://file-share-f8260.web.app
-
 ---
 
-## 🔐 Security Notes
+## 🐛 Common Issues
 
-- Files encrypted with AES-256-GCM before upload
-- Encryption keys stored in Firestore
-- Role-based access via Firestore Security Rules
-- Department isolation enforced
-- Audit trail for all actions
-- See [SECURITY.md](./SECURITY.md) for details
-
----
-
-## 🐛 Troubleshooting
-
-**Common issues:**
-
-- **Port 8080 in use**: Kill the process using `taskkill` (see TROUBLESHOOTING.md)
-- **Can't login**: Make sure you ran `node seed-simple.js`
-- **Emulator not starting**: Check if Java processes are hung
-- **Changes not showing**: Hard refresh browser (Ctrl+Shift+R)
-
-See [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) for full guide.
-
----
-
-## 📝 Development Workflow
-
-### **Daily Routine:**
-```bash
-# Morning: Start emulator
-npm run emulator
-
-# Start React app
-npm run dev
-
-# Code all day...
-# Save → Browser auto-refreshes → Test
-
-# Evening: Stop everything
-Ctrl+C (both terminals)
+### Port 8080 taken?
+```powershell
+netstat -ano | findstr :8080
+taskkill /PID <PID> /F
 ```
 
-### **Feature Development:**
+### Data disappeared?
+Use `npm run emulator` (NOT `firebase emulators:start`)
+
+### Need fresh data?
 ```bash
-# Create feature branch
-git checkout -b feature/my-feature
-
-# Develop & test locally
-
-# Commit & push
-git add .
-git commit -m "Added feature"
-git push origin feature/my-feature
-
-# Create Pull Request
-# Wait for review & merge
+npm run emulator:fresh
+node seed-simple.js
 ```
 
 ---
 
-## 🆘 Need Help?
+## 📖 More Info
 
-1. **Check documentation** (files above)
-2. **Check browser console** (F12 → Console)
-3. **Check Emulator UI** (http://localhost:4000)
-4. **See TROUBLESHOOTING.md**
-5. **Ask team lead**
+- **Setup Help**: [TEAM_SETUP.md](./TEAM_SETUP.md)
+- **Quick Commands**: [QUICK_REFERENCE.md](./QUICK_REFERENCE.md)
+- **Security Details**: [SECURITY.md](./SECURITY.md)
 
 ---
 
-## 📄 License
+## 👥 Test Accounts
 
-[Add your license here]
+All passwords: `test123456`
+
+| Email | Role |
+|-------|------|
+| examunit@test.com | Exam Unit (Admin) |
+| hos.cs@test.com | HOS (Computer Science) |
+| lecturer1@test.com | Lecturer (CS) |
+
+See [TEAM_SETUP.md](./TEAM_SETUP.md) for full list.
 
 ---
 
-## 👥 Team
+## 🚀 Deployment
 
-[Add team members here]
+**Only team lead deploys to production:**
+```bash
+firebase login
+npm run build
+firebase deploy
+```
 
 ---
 
-**Built for efficient and secure exam paper management** 🎓🔒
-
-**Version:** 2.0 (with Firebase Emulator support)  
-**Last Updated:** November 11, 2025
+**Start here:** [TEAM_SETUP.md](./TEAM_SETUP.md) 📖

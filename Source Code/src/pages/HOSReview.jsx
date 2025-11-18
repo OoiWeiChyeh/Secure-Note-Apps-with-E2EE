@@ -7,7 +7,8 @@ import {
   hosApproveFile, 
   hosRejectFile,
   getFileFeedback,
-  getDepartmentById
+  getDepartmentById,
+  getDepartmentFiles
 } from '../services/firestoreService';
 import Navbar from '../components/Navbar';
 import FileCard from '../components/FileCard';
@@ -39,6 +40,11 @@ export default function HOSReview() {
   const [department, setDepartment] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [stats, setStats] = useState({
+    pendingReview: 0,
+    approvedToday: 0,
+    totalFiles: 0
+  });
 
   useEffect(() => {
     checkAccessAndLoad();
@@ -90,9 +96,29 @@ export default function HOSReview() {
       console.log('HOS Review - Files:', reviewFiles);
       setFiles(reviewFiles);
       
+      // Get all department files for stats
+      const allDeptFiles = await getDepartmentFiles(deptId);
+      
       // Get department info
       const dept = await getDepartmentById(deptId);
       setDepartment(dept);
+
+      // Calculate stats
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const approvedToday = allDeptFiles.filter(file => {
+        if (!file.hosApprovedAt) return false;
+        const approvedDate = file.hosApprovedAt.toDate ? file.hosApprovedAt.toDate() : new Date(file.hosApprovedAt);
+        approvedDate.setHours(0, 0, 0, 0);
+        return approvedDate.getTime() === today.getTime();
+      }).length;
+
+      setStats({
+        pendingReview: reviewFiles.length,
+        approvedToday: approvedToday,
+        totalFiles: allDeptFiles.length
+      });
     } catch (err) {
       console.error('Error loading files:', err);
       setError('Failed to load files: ' + err.message);
@@ -135,11 +161,11 @@ export default function HOSReview() {
         setSuccess('File approved and forwarded to Exam Unit!');
       } else {
         if (!comments.trim()) {
-          setError('Please provide a reason for rejection');
+          setError('Please provide revision notes');
           return;
         }
         await hosRejectFile(selectedFile.id, user.uid, user.displayName || user.email, comments);
-        setSuccess('File rejected. Lecturer has been notified.');
+        setSuccess('Revision requested. Lecturer has been notified.');
       }
 
       setShowReviewModal(false);
@@ -206,7 +232,7 @@ export default function HOSReview() {
                 <Clock className="w-6 h-6 text-yellow-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{files.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.pendingReview}</p>
                 <p className="text-sm text-gray-600">Pending Review</p>
               </div>
             </div>
@@ -218,7 +244,7 @@ export default function HOSReview() {
                 <CheckCircle className="w-6 h-6 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">-</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.approvedToday}</p>
                 <p className="text-sm text-gray-600">Approved Today</p>
               </div>
             </div>
@@ -230,7 +256,7 @@ export default function HOSReview() {
                 <FileText className="w-6 h-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">-</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalFiles}</p>
                 <p className="text-sm text-gray-600">Total Files</p>
               </div>
             </div>
@@ -270,10 +296,10 @@ export default function HOSReview() {
                       </button>
                       <button
                         onClick={() => handleReview(file, 'reject')}
-                        className="flex-1 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                        className="flex-1 px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center gap-2"
                       >
                         <XCircle className="w-4 h-4" />
-                        Reject
+                        Request Revision
                       </button>
                     </div>
                   </div>
@@ -291,7 +317,7 @@ export default function HOSReview() {
             {/* Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 p-6">
               <h3 className="text-xl font-semibold text-gray-900">
-                {reviewAction === 'approve' ? 'Approve File' : 'Reject File'}
+                {reviewAction === 'approve' ? 'Approve File' : 'Request Revision'}
               </h3>
               <p className="text-sm text-gray-600 mt-1">{selectedFile.fileName}</p>
             </div>
@@ -329,7 +355,7 @@ export default function HOSReview() {
               {/* Comments */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {reviewAction === 'approve' ? 'Comments (Optional)' : 'Reason for Rejection *'}
+                  {reviewAction === 'approve' ? 'Comments (Optional)' : 'Revision Notes *'}
                 </label>
                 <textarea
                   value={comments}
@@ -353,10 +379,10 @@ export default function HOSReview() {
                   className={`flex-1 py-3 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                     reviewAction === 'approve' 
                       ? 'bg-green-600 hover:bg-green-700' 
-                      : 'bg-red-600 hover:bg-red-700'
+                      : 'bg-orange-600 hover:bg-orange-700'
                   }`}
                 >
-                  {submitting ? 'Submitting...' : reviewAction === 'approve' ? 'Approve & Forward' : 'Reject File'}
+                  {submitting ? 'Submitting...' : reviewAction === 'approve' ? 'Approve & Forward' : 'Request Revision'}
                 </button>
                 <button
                   onClick={() => {

@@ -22,7 +22,6 @@ export default function Upload() {
   const navigate = useNavigate();
   const [selectedFile, setSelectedFile] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('other');
-  const [expirationDays, setExpirationDays] = useState(7);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
@@ -129,11 +128,6 @@ export default function Upload() {
       // Step 4: Save metadata to Firestore
       setProgress(80);
       
-      // Calculate expiration date
-      const expiresAt = expirationDays > 0 
-        ? new Date(Date.now() + expirationDays * 24 * 60 * 60 * 1000)
-        : null;
-      
       const metadata = {
         fileId,
         fileName: selectedFile.name,
@@ -143,7 +137,6 @@ export default function Upload() {
         downloadURL: downloadURL,
         encrypted: true,
         category: selectedCategory,
-        expiresAt: expiresAt,
         createdBy: user.uid,
         createdByName: user.displayName || user.email,
         workflowStatus: 'DRAFT',
@@ -157,6 +150,7 @@ export default function Upload() {
         metadata.subjectCode = selectedSubject.subjectCode;
         metadata.subjectName = selectedSubject.subjectName;
         metadata.departmentId = selectedSubject.deptId;
+        metadata.departmentName = selectedSubject.deptName;
         metadata.courseId = selectedSubject.courseId;
       }
       
@@ -333,70 +327,6 @@ export default function Upload() {
                 </div>
               )}
 
-              {/* Expiration Settings (Optional) */}
-              {!uploading && !success && (
-                <div className="mb-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <label className="block text-sm font-medium text-gray-700">
-                      ⏰ Auto-Delete (Optional)
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={expirationDays !== null}
-                        onChange={(e) => setExpirationDays(e.target.checked ? 30 : null)}
-                        className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-600">Enable auto-delete</span>
-                    </label>
-                  </div>
-                  
-                  {expirationDays !== null && (
-                    <>
-                      <div className="flex gap-2 items-center">
-                        <input
-                          type="number"
-                          min="1"
-                          max="365"
-                          value={expirationDays}
-                          onChange={(e) => setExpirationDays(parseInt(e.target.value) || 30)}
-                          className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                        />
-                        <span className="text-gray-600">days</span>
-                        <span className="text-xs text-gray-500 ml-4">
-                          (Expires: {new Date(Date.now() + expirationDays * 24 * 60 * 60 * 1000).toLocaleDateString()})
-                        </span>
-                      </div>
-                      <div className="flex gap-2 mt-3 flex-wrap">
-                        {[7, 14, 30, 60, 90, 180].map(days => (
-                          <button
-                            key={days}
-                            onClick={() => setExpirationDays(days)}
-                            className={`px-3 py-1 rounded text-sm transition-colors ${
-                              expirationDays === days
-                                ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                                : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
-                            }`}
-                          >
-                            {days}d
-                          </button>
-                        ))}
-                      </div>
-                      <p className="text-xs text-gray-500 mt-2">
-                        ⚠️ File will be permanently deleted after this period
-                      </p>
-                    </>
-                  )}
-                  
-                  {expirationDays === null && (
-                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <p className="text-xs text-green-800">
-                        ✓ File will be kept permanently (recommended for exam papers)
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
 
               {/* Progress Bar */}
               {uploading && (

@@ -7,7 +7,8 @@ import {
   examUnitApproveFile, 
   examUnitRejectFile,
   getFileFeedback,
-  getDepartments
+  getDepartments,
+  getAllFiles
 } from '../services/firestoreService';
 import Navbar from '../components/Navbar';
 import FileCard from '../components/FileCard';
@@ -23,7 +24,12 @@ import {
   Loader2,
   Download,
   Eye,
-  Award
+  Award,
+  Building2,
+  ChevronDown,
+  ChevronUp,
+  Search,
+  Filter
 } from 'lucide-react';
 import { formatFileSize, formatDate } from '../utils/helpers';
 
@@ -31,6 +37,7 @@ export default function ExamUnitReview() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [files, setFiles] = useState([]);
+  const [allFiles, setAllFiles] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewAction, setReviewAction] = useState(null);
@@ -40,6 +47,14 @@ export default function ExamUnitReview() {
   const [departments, setDepartments] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [collapsedDepts, setCollapsedDepts] = useState({});
+  const [stats, setStats] = useState({
+    pending: 0,
+    approvedToday: 0,
+    rejectedToday: 0,
+    departments: 0
+  });
 
   useEffect(() => {
     checkAccessAndLoad();
@@ -70,13 +85,42 @@ export default function ExamUnitReview() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [reviewFiles, depts] = await Promise.all([
+      const [reviewFiles, depts, allFilesData] = await Promise.all([
         getExamUnitReviewFiles(),
-        getDepartments()
+        getDepartments(),
+        getAllFiles()
       ]);
       
       setFiles(reviewFiles);
       setDepartments(depts);
+      setAllFiles(allFilesData);
+
+      // Calculate stats
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const approvedToday = allFilesData.filter(file => {
+        if (!file.examUnitApprovedAt) return false;
+        const approvedDate = file.examUnitApprovedAt.toDate ? 
+          file.examUnitApprovedAt.toDate() : new Date(file.examUnitApprovedAt);
+        approvedDate.setHours(0, 0, 0, 0);
+        return approvedDate.getTime() === today.getTime();
+      }).length;
+
+      const rejectedToday = allFilesData.filter(file => {
+        if (!file.examUnitRejectedAt) return false;
+        const rejectedDate = file.examUnitRejectedAt.toDate ? 
+          file.examUnitRejectedAt.toDate() : new Date(file.examUnitRejectedAt);
+        rejectedDate.setHours(0, 0, 0, 0);
+        return rejectedDate.getTime() === today.getTime();
+      }).length;
+
+      setStats({
+        pending: reviewFiles.length,
+        approvedToday: approvedToday,
+        rejectedToday: rejectedToday,
+        departments: depts.length
+      });
     } catch (err) {
       console.error('Error loading data:', err);
       setError('Failed to load files');
@@ -119,11 +163,11 @@ export default function ExamUnitReview() {
         setSuccess('File approved! Ready for printing.');
       } else {
         if (!comments.trim()) {
-          setError('Please provide a reason for rejection');
+          setError('Please provide revision notes');
           return;
         }
         await examUnitRejectFile(selectedFile.id, user.uid, user.displayName || user.email, comments);
-        setSuccess('File rejected. Lecturer has been notified.');
+        setSuccess('Revision requested. Lecturer has been notified.');
       }
 
       setShowReviewModal(false);
@@ -144,6 +188,44 @@ export default function ExamUnitReview() {
     const dept = departments.find(d => d.id === deptId);
     return dept ? dept.name : 'Unknown';
   };
+
+  // Group files by department
+  const groupByDepartment = (filesList) => {
+    const grouped = {};
+    filesList.forEach(file => {
+      const deptName = file.departmentName || 'Unknown Department';
+      if (!grouped[deptName]) {
+        grouped[deptName] = [];
+      }
+      grouped[deptName].push(file);
+    });
+    return grouped;
+  };
+
+  // Filter files by search query
+  const filterFiles = (filesList) => {
+    if (!searchQuery.trim()) return filesList;
+    
+    const query = searchQuery.toLowerCase();
+    return filesList.filter(file => 
+      file.fileName?.toLowerCase().includes(query) ||
+      file.subjectCode?.toLowerCase().includes(query) ||
+      file.subjectName?.toLowerCase().includes(query) ||
+      file.departmentName?.toLowerCase().includes(query) ||
+      file.createdByName?.toLowerCase().includes(query)
+    );
+  };
+
+  // Toggle department collapse
+  const toggleDepartment = (deptName) => {
+    setCollapsedDepts(prev => ({
+      ...prev,
+      [deptName]: !prev[deptName]
+    }));
+  };
+
+  const filteredFiles = filterFiles(files);
+  const groupedFiles = groupByDepartment(filteredFiles);
 
   if (loading) {
     return (
@@ -190,7 +272,7 @@ export default function ExamUnitReview() {
                 <Clock className="w-6 h-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{files.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
                 <p className="text-sm text-gray-600">Pending Final Review</p>
               </div>
             </div>
@@ -202,7 +284,7 @@ export default function ExamUnitReview() {
                 <Award className="w-6 h-6 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">-</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.approvedToday}</p>
                 <p className="text-sm text-gray-600">Approved Today</p>
               </div>
             </div>
@@ -214,8 +296,8 @@ export default function ExamUnitReview() {
                 <XCircle className="w-6 h-6 text-red-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">-</p>
-                <p className="text-sm text-gray-600">Rejected Today</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.rejectedToday}</p>
+                <p className="text-sm text-gray-600">Revisions Today</p>
               </div>
             </div>
           </div>
@@ -226,62 +308,121 @@ export default function ExamUnitReview() {
                 <FileText className="w-6 h-6 text-purple-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{departments.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.departments}</p>
                 <p className="text-sm text-gray-600">Departments</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Files List */}
+        {/* Search Bar */}
+        <div className="mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by file, subject, department, or lecturer name..."
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        </div>
+
+        {/* Files List - Grouped by Department */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-xl font-semibold text-gray-900">Files Awaiting Final Approval</h2>
-            <p className="text-sm text-gray-600 mt-1">These files have been approved by HOS</p>
+            <p className="text-sm text-gray-600 mt-1">HOS-approved files grouped by department</p>
           </div>
 
-          {files.length === 0 ? (
+          {filteredFiles.length === 0 ? (
             <div className="p-12 text-center">
               <Award className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-600 mb-2">No files pending final review</p>
-              <p className="text-sm text-gray-500">HOS-approved files will appear here</p>
+              <p className="text-gray-600 mb-2">
+                {searchQuery ? 'No files match your search' : 'No files pending final review'}
+              </p>
+              <p className="text-sm text-gray-500">
+                {searchQuery ? 'Try adjusting your search query' : 'HOS-approved files will appear here'}
+              </p>
             </div>
           ) : (
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {files.map((file) => (
-                  <div key={file.id} className="space-y-3">
-                    <FileCard 
-                      file={file} 
-                      isOwner={false}
-                      userRole="exam_unit"
-                      onDeleted={loadData}
-                    />
-                    {file.hosComments && (
-                      <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <p className="text-xs font-medium text-blue-900 mb-1">HOS Comments:</p>
-                        <p className="text-sm text-blue-800">{file.hosComments}</p>
-                      </div>
-                    )}
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleReview(file, 'approve')}
-                        className="flex-1 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => handleReview(file, 'reject')}
-                        className="flex-1 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
-                      >
-                        <XCircle className="w-4 h-4" />
-                        Reject
-                      </button>
+            <div className="divide-y divide-gray-200">
+              {Object.entries(groupedFiles).map(([deptName, deptFiles]) => (
+                <div key={deptName} className="overflow-hidden">
+                  {/* Department Header - Collapsible */}
+                  <button
+                    onClick={() => toggleDepartment(deptName)}
+                    className="w-full p-6 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Building2 className="w-5 h-5 text-blue-600" />
+                      <h3 className="text-lg font-semibold text-gray-900">{deptName}</h3>
+                      <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                        {deptFiles.length} file{deptFiles.length !== 1 ? 's' : ''}
+                      </span>
                     </div>
-                  </div>
-                ))}
-              </div>
+                    {collapsedDepts[deptName] ? (
+                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <ChevronUp className="w-5 h-5 text-gray-400" />
+                    )}
+                  </button>
+
+                  {/* Department Files */}
+                  {!collapsedDepts[deptName] && (
+                    <div className="px-6 pb-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {deptFiles.map((file) => (
+                          <div key={file.id} className="space-y-3">
+                            <FileCard 
+                              file={file} 
+                              isOwner={false}
+                              userRole="exam_unit"
+                              onDeleted={loadData}
+                            />
+                            
+                            {/* Lecturer Info */}
+                            {file.createdByName && (
+                              <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">
+                                <p className="text-xs text-gray-600">
+                                  <span className="font-medium">Lecturer:</span> {file.createdByName}
+                                </p>
+                              </div>
+                            )}
+
+                            {/* HOS Comments */}
+                            {file.hosComments && (
+                              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                <p className="text-xs font-medium text-blue-900 mb-1">HOS Comments:</p>
+                                <p className="text-sm text-blue-800">{file.hosComments}</p>
+                              </div>
+                            )}
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleReview(file, 'approve')}
+                                className="flex-1 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => handleReview(file, 'reject')}
+                                className="flex-1 px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center gap-2"
+                              >
+                                <XCircle className="w-4 h-4" />
+                                Request Revision
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -294,7 +435,7 @@ export default function ExamUnitReview() {
             {/* Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 p-6">
               <h3 className="text-xl font-semibold text-gray-900">
-                {reviewAction === 'approve' ? 'Final Approval' : 'Reject File'}
+                {reviewAction === 'approve' ? 'Final Approval' : 'Request Revision'}
               </h3>
               <p className="text-sm text-gray-600 mt-1">{selectedFile.fileName}</p>
             </div>
@@ -348,7 +489,7 @@ export default function ExamUnitReview() {
               {/* Comments */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {reviewAction === 'approve' ? 'Final Comments (Optional)' : 'Reason for Rejection *'}
+                  {reviewAction === 'approve' ? 'Final Comments (Optional)' : 'Revision Notes *'}
                 </label>
                 <textarea
                   value={comments}
@@ -372,10 +513,10 @@ export default function ExamUnitReview() {
                   className={`flex-1 py-3 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                     reviewAction === 'approve' 
                       ? 'bg-green-600 hover:bg-green-700' 
-                      : 'bg-red-600 hover:bg-red-700'
+                      : 'bg-orange-600 hover:bg-orange-700'
                   }`}
                 >
-                  {submitting ? 'Submitting...' : reviewAction === 'approve' ? '✓ Final Approval' : 'Reject File'}
+                  {submitting ? 'Submitting...' : reviewAction === 'approve' ? '✓ Final Approval' : 'Request Revision'}
                 </button>
                 <button
                   onClick={() => {

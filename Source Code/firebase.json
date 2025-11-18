@@ -25,8 +25,7 @@
       "port": 9099
     },
     "firestore": {
-      "port": 8080,
-      "rules": "firestore.rules.emulator"
+      "port": 8080
     },
     "storage": {
       "port": 9199
